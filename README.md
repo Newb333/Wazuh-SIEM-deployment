@@ -1,31 +1,30 @@
-# Wazuh SIEM Deployment & Troubleshooting Lab
+# Wazuh SIEM Deployment & Troubleshooting
 
-![Wazuh](https://img.shields.io/badge/SIEM-Wazuh-005571?logo=opensearch&logoColor=white)
-![Platform](https://img.shields.io/badge/Platform-Ubuntu%20Server%2024.04-E95420?logo=ubuntu&logoColor=white)
-![Virtualization](https://img.shields.io/badge/Virtualization-VirtualBox-183A61?logo=virtualbox&logoColor=white)
-![Status](https://img.shields.io/badge/Project-Lab%20deployment-blue)
+![Wazuh](https://img.shields.io/badge/SIEM-Wazuh-005571?logo=opensearch&logoColor=white) ![Ubuntu](https://img.shields.io/badge/Ubuntu-24.04-E95420?logo=ubuntu&logoColor=white) ![VirtualBox](https://img.shields.io/badge/VirtualBox-Lab-183A61?logo=virtualbox&logoColor=white)
 
-A hands-on security operations lab focused on deploying and troubleshooting a self-hosted Wazuh SIEM stack. The work covered the core Wazuh services, secure Dashboard-to-Indexer communication, service health checks, certificate trust, and investigation of authentication failures.
+I set up this project to document my Wazuh SIEM lab, the issues I ran into during deployment, and how I worked through them. The lab runs on Ubuntu Server in VirtualBox and uses the all-in-one Wazuh deployment.
 
-> **Project scope:** This repository documents a personal lab deployment and the troubleshooting performed. It is not a production reference architecture or a claim of completed endpoint monitoring. At the captured validation point, the Wazuh dashboard was available, the core services were running, and no agents were registered.
+Most of my troubleshooting was around getting the Dashboard to communicate properly with the Indexer, checking certificate trust, and making sure the main services were running.
 
-## Dashboard evidence
+## Dashboard
 
-![Sanitized Wazuh dashboard overview](screenshots/wazuh-overview.jpg)
+![Wazuh dashboard overview](screenshots/wazuh-overview.jpg)
 
-*Sanitized capture from the lab dashboard. The browser address bar and unrelated desktop context have been removed. The snapshot showed zero registered agents; the displayed alert totals are dashboard counters and are not presented as endpoint-detection results.*
+*This is a cropped screenshot from my lab. At the time I captured it, no agents had been enrolled. The alert numbers shown are dashboard counters; I have not treated them as proof of endpoint detections.*
 
-## Project goals
+## What I worked on
 
-- Deploy the Wazuh server-side components in an isolated Ubuntu Server virtual machine.
-- Understand the roles and interactions of the Manager, Indexer, Dashboard, and Filebeat.
-- Troubleshoot Dashboard-to-Indexer authentication and TLS trust problems.
-- Verify service state, local HTTPS connectivity, certificate validation, and API endpoint reachability.
-- Document what was verified, what remained incomplete, and how sensitive deployment details were protected.
+- Set up an all-in-one Wazuh server in an Ubuntu Server VM.
+- Checked the Wazuh Manager, Indexer, Dashboard, and Filebeat services.
+- Investigated Dashboard-to-Indexer authentication errors.
+- Updated the internal service-account credential and matched it with the Dashboard keystore.
+- Checked the root CA configuration and TLS communication between the Dashboard and Indexer.
+- Checked whether the Wazuh API endpoint was reachable.
+- Recorded the checks and remaining work.
 
-## Lab architecture
+## Lab layout
 
-The lab used an Ubuntu Server virtual machine hosted in VirtualBox. Its network adapter was configured in bridged mode for controlled access from the host network.
+I used a single Ubuntu Server VM for the Wazuh components. The diagram below shows the main connections I worked with. It does not include the actual addresses or machine details from my lab.
 
 ```mermaid
 flowchart TB
@@ -35,103 +34,82 @@ flowchart TB
         D["Wazuh Dashboard"]
         F["Filebeat"]
         M -->|"Alert data"| F
-        F -->|"Secure forwarding"| I
-        D -->|"HTTPS + certificate trust"| I
-        D -->|"Wazuh API integration"| M
+        F -->|"Forwarding"| I
+        D -->|"HTTPS / trusted CA"| I
+        D -->|"Wazuh API"| M
     end
     U["Administrator browser"] -->|"HTTPS"| D
 ```
 
-The diagram is a logical view of the components investigated in this lab. It intentionally omits real addresses, hostnames, usernames, and certificate details.
-
 ## Components
 
-| Component | Role in the lab |
+| Component | What it does |
 |---|---|
-| Wazuh Manager | Central security monitoring and analysis service |
-| Wazuh Indexer | Stores and indexes security events |
-| Wazuh Dashboard | Web interface for operational visibility |
-| Filebeat | Forwards alert data to the indexer |
-| Ubuntu Server | Host operating system for the SIEM virtual machine |
-| VirtualBox | Hypervisor used to run the lab VM |
+| Wazuh Manager | Handles agent communication and security analysis |
+| Wazuh Indexer | Stores and indexes events |
+| Wazuh Dashboard | Provides the web interface |
+| Filebeat | Forwards alert data to the Indexer |
+| Ubuntu Server | Runs the Wazuh services |
+| VirtualBox | Hosts the lab VM |
 
-## Work performed
+## Troubleshooting notes
 
-### 1. Deployment and service checks
-- Worked with an all-in-one Wazuh virtual-machine deployment.
-- Checked the systemd state of the Manager, Indexer, Filebeat, and Dashboard services.
-- Confirmed the four core services were active after troubleshooting.
+### Dashboard and Indexer authentication
 
-### 2. Dashboard-to-Indexer authentication troubleshooting
-- Investigated Dashboard authentication failures and an initial unavailable/503 dashboard state.
-- Traced the issue to an inconsistent internal service-account credential.
-- Updated the relevant credential and synchronized the Dashboard keystore configuration.
-- Restarted and rechecked the affected services.
+I initially ran into Dashboard authentication errors. I checked the service logs, reviewed the Indexer connection settings, and checked the Dashboard keystore. The issue was related to the internal service-account credential not matching. I reset the credential and updated the Dashboard keystore so they were aligned.
 
-### 3. TLS and certificate validation
-- Investigated TLS handshake failures, including certificate trust errors.
-- Reviewed the shared root CA configuration used by the Indexer, Dashboard, and Filebeat components.
-- Checked certificate file accessibility from the Dashboard service account.
-- Verified the Dashboard's certificate-based trust configuration for the Indexer connection.
+### TLS and certificates
 
-### 4. API connectivity checks
-- Checked the Wazuh API service state and local endpoint reachability.
-- Confirmed the API endpoint responded with an authentication-required response.
-- **API authentication was not recorded as successfully completed** and is therefore not claimed as validated.
+I also investigated TLS handshake errors. I checked the configured root CA, certificate file permissions, and whether the Dashboard service account could read the required files. I kept certificate verification enabled rather than bypassing it.
 
-## Validation snapshot
+### Wazuh API
 
-The following results are based on the captured lab evidence, not assumptions:
+I checked the API endpoint and got an authentication-required response. That confirmed the endpoint was reachable, but I have not yet verified a successful API login. I have kept those two checks separate in this documentation.
 
-| Check | Observed result |
+## Validation at the time of capture
+
+| Check | Result |
 |---|---|
-| Wazuh Indexer service | Active / running |
-| Wazuh Manager service | Active / running |
-| Filebeat service | Active / running |
-| Wazuh Dashboard service | Active / running |
-| Dashboard availability | Accessible after troubleshooting |
-| Dashboard-to-Indexer TLS trust | Certificate validation checked |
-| Wazuh API endpoint | Reachable; authentication required |
-| Registered endpoint agents | 0 at the captured snapshot |
-| Endpoint telemetry validation | Pending |
+| Wazuh Indexer | Active |
+| Wazuh Manager | Active |
+| Filebeat | Active |
+| Wazuh Dashboard | Active and accessible |
+| Dashboard-to-Indexer TLS | Certificate trust checked |
+| Wazuh API | Reachable; authentication still to be verified |
+| Enrolled agents | 0 in the captured dashboard |
+| Endpoint event testing | Not completed |
 
-The dashboard snapshot displayed 137 medium-severity and 518 low-severity counters, with zero high- and critical-severity counters. Because no agents were registered at that point, these counters must not be interpreted as proof of endpoint monitoring or as confirmed security incidents.
+The screenshot showed 137 medium and 518 low severity counters, with zero high and critical counters. Since there were no enrolled agents in the screenshot, I am not presenting these figures as proof of endpoint monitoring.
 
-## Repository guide
+## Repository contents
 
-- [Architecture](docs/architecture.md) — component roles and data flow.
-- [Deployment and validation notes](docs/deployment-validation.md) — environment, checks, and evidence boundaries.
-- [Troubleshooting notes](docs/troubleshooting.md) — authentication, TLS, service health, and API checks.
-- [Security and privacy](docs/security-and-privacy.md) — redaction policy and safe publication practices.
-- [Screenshots](screenshots/README.md) — sanitized evidence included in this repository.
+- [Architecture](docs/architecture.md)
+- [Deployment and validation](docs/deployment-validation.md)
+- [Troubleshooting notes](docs/troubleshooting.md)
+- [Security and privacy](docs/security-and-privacy.md)
+- [Screenshots](screenshots/README.md)
 
-## Skills demonstrated
+## What I learned
 
-- Linux service administration with systemd
-- SIEM component deployment and troubleshooting
-- OpenSearch/Indexer connectivity concepts
-- TLS certificate trust and CA validation
-- Service-account credential and keystore troubleshooting
-- Log inspection with journalctl
-- API reachability and authentication-boundary validation
-- Technical documentation and evidence-based reporting
+- Managing Linux services with systemd
+- Checking service logs with journalctl
+- Troubleshooting service-account credentials and keystores
+- Understanding TLS certificates and CA trust
+- Checking communication between Wazuh components
+- Separating service reachability from successful authentication
 
-## Current limitations and next steps
+## Still to do
 
-- Enroll a dedicated test endpoint using a newly generated agent authentication key.
-- Verify agent connectivity and confirm the endpoint appears in the Wazuh dashboard.
-- Generate controlled test events and validate their ingestion and visibility.
-- Validate Wazuh API authentication separately.
-- Build and test focused detection use cases and document their expected/observed results.
+- Enroll a test endpoint.
+- Confirm that the endpoint appears in the Dashboard.
+- Generate a controlled test event and verify that Wazuh receives it.
+- Complete a successful Wazuh API authentication test.
+- Add evidence for the detection tests once I have completed them.
 
-These items are intentionally marked as pending until supported by fresh test evidence.
+I will update this repository as I complete those checks.
 
-## Safety and privacy
+## Security note
 
-This public repository uses sanitized screenshots and generalized configuration examples. It does not include private network addresses, real device names, usernames, credentials, authentication keys, private keys, CA files, or other deployment secrets. Never commit live configuration files or secret material.
+I have left out private IP addresses, PC names, usernames, credentials, API keys, tokens, and certificate/private-key files. The screenshots and examples in this repository should not expose details from the actual lab network.
 
-This lab was performed in an environment the author was authorized to administer. Use the procedures only on systems and networks where you have permission.
-
----
-
-*Independent hands-on lab project. Documentation reflects the work and evidence available at the time of publication.*
+This is a personal lab project. Only use similar procedures on systems you own or are authorized to administer.
