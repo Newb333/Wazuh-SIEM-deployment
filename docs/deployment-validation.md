@@ -1,31 +1,25 @@
-# Deployment and Validation Notes
+# Deployment and Validation
 
-## Lab environment
+## My lab setup
 
 - Hypervisor: Oracle VirtualBox
-- Server OS: Ubuntu Server 24.04 LTS
-- Deployment model: all-in-one Wazuh virtual machine
-- Network mode: bridged adapter
-- Core services reviewed: Wazuh Manager, Wazuh Indexer, Wazuh Dashboard, Filebeat
+- Operating system: Ubuntu Server 24.04 LTS
+- Deployment: All-in-one Wazuh VM
+- Network adapter: Bridged
+- Services checked: Wazuh Manager, Wazuh Indexer, Wazuh Dashboard, Filebeat
 
-Exact IP addresses, hostnames, usernames, and internal URLs are intentionally excluded.
+I have removed the actual IP addresses, hostnames, usernames, and internal URLs from this repository.
 
-## Deployment work
+## Service checks
 
-The lab was brought up as a single virtual machine running the Wazuh server-side components. The work then focused on service readiness and the dependencies between the Dashboard, Indexer, Manager, and Filebeat.
-
-## Operational checks
-
-The following commands are representative administrative checks. Run them only on your own lab server.
-
-### Check service state
+I used systemd to check the status of the main services:
 
 ```bash
 sudo systemctl --no-pager --full status \
   wazuh-indexer wazuh-manager filebeat wazuh-dashboard
 ```
 
-### Review recent service logs
+To review recent logs:
 
 ```bash
 sudo journalctl -u wazuh-dashboard --since "15 minutes ago" --no-pager
@@ -34,17 +28,11 @@ sudo journalctl -u wazuh-manager --since "15 minutes ago" --no-pager
 sudo journalctl -u filebeat --since "15 minutes ago" --no-pager
 ```
 
-### Inspect listening services
+I also used `ss -lntp` to inspect listening services. I have not included raw output because it can expose internal addresses and process details.
 
-```bash
-sudo ss -lntp
-```
+## Checking Indexer TLS
 
-Review only the ports expected for the services enabled in your deployment. Do not publish raw output if it contains private addresses, process arguments, or usernames.
-
-### Validate the Indexer TLS connection
-
-Use the configured CA certificate rather than disabling certificate verification:
+I tested the connection using the configured CA certificate. The example below uses placeholders; I have not included the real lab paths or addresses.
 
 ```bash
 openssl s_client \
@@ -53,20 +41,20 @@ openssl s_client \
   -brief </dev/null
 ```
 
-Replace placeholders locally. Do not commit CA certificates or private keys.
+I kept certificate verification enabled.
 
-### Validate API reachability
+## API check
 
-The Wazuh API endpoint was checked and returned an authentication-required response. This established that the endpoint was reachable, but did not prove that API credentials worked. Keep reachability and authentication as separate validation items.
+The Wazuh API endpoint responded with an authentication-required response. This showed that the endpoint was reachable, but it did not prove that API authentication was working. I still need to complete that test.
 
-## Recorded outcome
+## Results I recorded
 
-- All four core services were observed active after troubleshooting.
-- The Dashboard became accessible after resolving the Dashboard-to-Indexer service credential mismatch and reviewing TLS trust.
-- Dashboard-to-Indexer certificate validation was checked.
-- The Wazuh API endpoint was reachable but requested authentication.
-- The captured dashboard showed no registered agents.
+- All four core services were active after troubleshooting.
+- I was able to access the Dashboard after correcting the service-account credential issue.
+- I checked the Dashboard-to-Indexer certificate trust configuration.
+- The Wazuh API endpoint was reachable, but authentication remains unverified.
+- The dashboard screenshot showed zero enrolled agents.
 
-## Evidence boundaries
+## Remaining validation
 
-A running service is not the same as an end-to-end validated SIEM pipeline. To claim endpoint monitoring, enroll a dedicated test agent, confirm its status, generate a controlled test event, and verify that the event reaches the Dashboard. That workflow remains pending in this project.
+The services running does not by itself prove that the full SIEM pipeline is working. My next step is to enroll a test agent, confirm it appears in the Dashboard, generate a controlled event, and check that the event is received.
