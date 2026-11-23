@@ -1,9 +1,9 @@
 # Screenshots
 
-## Wazuh dashboard overview
+## Wazuh Dashboard
 
-- `wazuh-overview.jpg` — sanitized Wazuh dashboard overview captured during the lab.
-- The browser address bar and unrelated desktop context were removed before publication.
-- The snapshot showed zero registered agents. The displayed alert counters are preserved as a historical dashboard snapshot only; they are not represented as endpoint detection results.
+`wazuh-overview.jpg` is a cropped screenshot from my Wazuh lab.
 
-Before adding any future screenshots, remove internal IP addresses, URLs, hostnames, usernames, MAC addresses, tokens, credentials, certificate details, and unrelated browser or desktop information.
+The screenshot showed zero enrolled agents. The severity counters are included as they appeared in the dashboard at the time; they are not evidence of endpoint detections.
+
+I remove internal addresses, URLs, hostnames, usernames, MAC addresses, credentials, tokens, certificate details, and unrelated browser or desktop information before publishing screenshots.
