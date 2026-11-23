@@ -1,0 +1,32 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*password*
+*credential*
+*token*
+
+# Logs and backups
+*.log
+*.bak
+*.backup
+*.old
+*.swp
+*.tmp
+
+# Local exports and captures (add only reviewed, sanitized screenshots)
+*.pcap
+*.pcapng
+*.har
+
+# OS/editor artifacts
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
