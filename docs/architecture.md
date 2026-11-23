@@ -1,41 +1,39 @@
-# Architecture
+# Lab Architecture
 
-## Environment
+I ran the Wazuh components together on one Ubuntu Server virtual machine hosted in VirtualBox. The VM used bridged networking so I could access the lab from my host machine.
 
-The deployment was an all-in-one Wazuh lab hosted on an Ubuntu Server virtual machine in Oracle VirtualBox. The VM network adapter was configured for bridged networking so the lab could be reached from the host environment.
+I have left out the actual network addresses, hostnames, and machine names.
 
-Private network details and machine identifiers are deliberately omitted from this public document.
+## Components
 
-## Logical components
-
-| Component | Responsibility | Validation performed |
+| Component | Purpose | What I checked |
 |---|---|---|
-| Wazuh Manager | Receives and analyzes endpoint security data; exposes the Wazuh API | Service state checked; API endpoint reachability checked |
-| Wazuh Indexer | Indexes and stores alert/event data | Service state and HTTPS connectivity checked |
-| Wazuh Dashboard | Web interface and integration layer | Service state checked; dashboard opened after troubleshooting |
-| Filebeat | Ships alert data from the Manager to the Indexer | Service state checked |
+| Wazuh Manager | Agent communication and security analysis | Service state and API endpoint reachability |
+| Wazuh Indexer | Stores and indexes events | Service state and HTTPS connectivity |
+| Wazuh Dashboard | Web interface | Service state and dashboard access |
+| Filebeat | Sends alert data to the Indexer | Service state |
 
-## Logical data flow
+## Data flow
 
 ```mermaid
 flowchart LR
-    E["Future enrolled endpoints"] -->|"Agent events (not yet validated)"| M["Wazuh Manager"]
+    E["Test endpoint (planned)"] -->|"Agent events"| M["Wazuh Manager"]
     M -->|"Alert output"| F["Filebeat"]
     F -->|"Forwarded data"| I["Wazuh Indexer"]
     D["Wazuh Dashboard"] -->|"HTTPS / trusted CA"| I
     D -->|"API integration"| M
-    A["Administrator"] -->|"Browser over HTTPS"| D
+    A["Administrator"] -->|"HTTPS"| D
 ```
 
-The endpoint node is shown as a future integration point. No agents were registered in the captured dashboard snapshot, so endpoint event ingestion is not claimed as completed.
+The endpoint is shown as a planned part of the lab. No agents were registered in the dashboard screenshot, so I have not claimed that endpoint event collection has been tested.
 
-## Trust boundaries
+## Connections I checked
 
-- Administrator browser to Dashboard: web access over HTTPS.
-- Dashboard to Indexer: HTTPS with certificate-authority validation configured.
-- Dashboard to Manager: Wazuh API integration; endpoint reachability was checked, but successful API authentication was not verified.
-- Manager to Indexer: alert forwarding through Filebeat.
+- Browser to Dashboard over HTTPS.
+- Dashboard to Indexer over HTTPS, with CA trust configured.
+- Dashboard to Manager through the Wazuh API. I checked reachability, but did not complete API authentication.
+- Manager alert forwarding through Filebeat.
 
-## Design notes
+## Notes
 
-This is a learning and troubleshooting lab, not a high-availability or production-hardened architecture. A production design would require explicit sizing, access-control review, certificate lifecycle management, backups, network segmentation, monitoring, and documented recovery procedures.
+This is a small learning lab, not a production or high-availability deployment. A production setup would need proper sizing, access controls, network segmentation, backups, certificate lifecycle management, and recovery planning.
