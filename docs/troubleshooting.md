@@ -1,73 +1,46 @@
 # Troubleshooting Notes
 
-This document summarizes the issues investigated in the lab. It avoids publishing live credentials, private addresses, usernames, or certificate material.
+These are the main issues I ran into while working on the Wazuh lab.
 
-## 1. Dashboard unavailable / initial 503 response
+## 1. Dashboard was not loading
 
-**Observed:** The Dashboard service initially did not provide a usable interface.
+The Dashboard initially returned an unavailable/503 response.
 
-**Investigation:**
-- Checked the Dashboard systemd state and process.
-- Reviewed recent Dashboard logs.
-- Checked local connectivity to the Indexer.
-- Reviewed TLS handshake and authentication errors.
+I checked the Dashboard service status and process, recent logs, the local connection to the Indexer, and authentication and TLS errors.
 
-**Resolution work:** The internal service-account credential was corrected and the Dashboard keystore was synchronized with the intended credential. The relevant services were restarted and checked. The Dashboard subsequently became accessible.
+I eventually found that the internal service-account credential and the value stored in the Dashboard keystore were not aligned. I reset the credential, updated the keystore, restarted the affected services, and checked them again. After that, the Dashboard became accessible.
 
-**Lesson:** Dashboard availability depends on more than the Dashboard process being active; its backend authentication and TLS trust must also work.
+## 2. Dashboard-to-Indexer authentication errors
 
-## 2. Dashboard-to-Indexer authentication failure
+The Dashboard logs showed authentication exceptions.
 
-**Observed:** Dashboard logs contained authentication exceptions.
+I reviewed the configured service account, checked the keystore entries, and verified that the Dashboard service account could read the keystore. I then reset the internal service-account password using the Wazuh security tooling and updated the Dashboard keystore with the matching credential.
 
-**Investigation:**
-- Reviewed the configured Indexer username and credential source.
-- Confirmed the Dashboard keystore contained the expected credential entries.
-- Checked that the service account could read the keystore.
-- Compared the configured service credential with the Indexer's internal user configuration.
+I have not included the password or any command output containing it in this repository.
 
-**Resolution work:** The internal service-account password was reset through the Wazuh security tooling, and the Dashboard keystore was aligned with the updated value. Secret values are intentionally not included here.
+## 3. TLS certificate errors
 
-**Lesson:** When a service credential is rotated, every dependent component must be reviewed. Avoid placing passwords directly in shell history, screenshots, or Git.
+I also saw TLS handshake errors while troubleshooting the Dashboard connection.
 
-## 3. TLS certificate trust errors
+I checked the root CA configured for the Dashboard, certificate file and directory permissions, whether the Dashboard service account could read the certificate files, and the certificate verification setting.
 
-**Observed:** Logs included TLS errors indicating that the peer did not accept the presented certificate.
+I kept certificate verification enabled. Disabling verification would have hidden the trust problem rather than fixing it.
 
-**Investigation:**
-- Reviewed the root CA path configured for the Dashboard.
-- Checked certificate file permissions and parent-directory traversal permissions.
-- Tested the TLS connection as the Dashboard service account.
-- Reviewed the configured certificate verification mode.
+## 4. Wazuh API response
 
-**Resolution work:** The shared root CA configuration and service-account access were reviewed. Certificate-based verification was retained; disabling verification was not used as the final fix.
+The API endpoint was reachable, but it returned an authentication-required response. That confirms reachability only. I still need to verify a successful API login and a permitted API request.
 
-**Lesson:** Validate the certificate chain and service identity. Do not solve trust problems by turning off TLS verification.
+## Checks I found useful
 
-## 4. Wazuh API reachability versus authentication
+1. Check the service status with systemd.
+2. Review logs around the time the issue occurred.
+3. Check whether the expected service is listening.
+4. Test file access as the service account, not just as root.
+5. Verify the certificate chain using the configured CA.
+6. Check that service credentials match without printing them in the terminal.
+7. Restart only the services affected by the change.
+8. Repeat the checks and record the result.
 
-**Observed:** The API endpoint was reachable and returned an authentication-required response.
+## Before sharing logs or screenshots
 
-**Interpretation:** Network/service reachability was demonstrated. Successful API authentication was not demonstrated and is not claimed in this project.
-
-**Next check:** Complete API authentication using a securely managed credential, then validate a permitted read-only API request.
-
-## 5. General diagnostic sequence
-
-1. Check whether the relevant systemd service is active.
-2. Inspect recent logs for the same time window as the failure.
-3. Confirm that the expected local service is listening.
-4. Test connectivity from the actual service account where permissions matter.
-5. Validate certificate trust using the intended CA.
-6. Check service-account credential consistency and keystore contents without printing secret values.
-7. Restart only the affected services after a controlled configuration change.
-8. Repeat the checks and record the observed result.
-
-## Redaction rule
-
-Before sharing terminal output, remove:
-- passwords, API keys, tokens, and authentication keys;
-- private keys and certificate contents;
-- private IP addresses and internal URLs;
-- hostnames, PC names, usernames, MAC addresses, and device identifiers;
-- browser tabs, account names, and unrelated desktop context.
+I remove passwords, tokens, API keys, private keys, internal IP addresses, hostnames, PC names, usernames, MAC addresses, and any other identifying details.
